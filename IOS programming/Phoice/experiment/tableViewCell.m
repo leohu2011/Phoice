@@ -47,6 +47,7 @@
     
     //overload the imageview's style
     //need both bounds and frame
+    //not a laptop version
     self.imageView.bounds = CGRectMake(10,10,80,80);
     self.imageView.frame =CGRectMake(10,10,80,80);
     self.imageView.contentMode = UIViewContentModeScaleAspectFit;
