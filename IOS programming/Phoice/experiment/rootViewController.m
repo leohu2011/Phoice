@@ -33,6 +33,10 @@
     //database
     NSString *dbPath;
     FMDatabase *db;
+    
+    //local cache storage
+    NSString *Plist_filePath;
+    
 }
 
 //next step is to add the loading procedure from database to cache in the startup step in async
@@ -47,6 +51,10 @@
                      @"http://ww2.sinaimg.cn/thumbnail/642beb18gw1ep3629gfm0g206o050b2a.gif",
                      @"http://ww1.sinaimg.cn/thumbnail/9be2329dgw1etlyb1yu49j20c82p6qc1.jpg"
                      ];
+    [self initializeDataBase];
+    
+    [self obtainDataFromDB];
+    
     [self initializeView];
     
     [self initializeTableView];
@@ -54,9 +62,6 @@
     [self initiaizeScrollView];
     
     [self initializePageControl];
-    
-    [self initializeDataBase];
-    
 
 }
 
@@ -80,10 +85,84 @@
             NSLog( @"sb wan er yi wrong again");
         }
         
-        for(int i = 0; i < contentArray.count; i++){
-            NSString *small = contentArray[i];
-            NSString *big = [small stringByReplacingOccurrencesOfString:@"thumbnail" withString:@"bmiddle"];
-            [db executeUpdate: @"INSERT INTO Phoice(Section, IndexRow, Loaded, TextLabel, DetailDescription, SmallPhoto, SmallPhotoAddress, BigPhoto, BigPhotoAddress, AudioFile) VALUES (?,?,?,?,?,?,?,?,?,?);", nil, nil, 0, nil, nil, nil, small, nil, big, nil ];
+        int count = 0;
+        FMResultSet *result = [db executeQuery:@"select count(*) as NUM from Phoice"];
+        if ([result next]){
+            count = [result intForColumn: @"NUM"];
+        }
+        
+        //this step is to check if the database has already be initiated
+        if (count == 0){
+            for(int i = 0; i < contentArray.count; i++){
+                NSString *small = contentArray[i];
+                NSString *big = [small stringByReplacingOccurrencesOfString:@"thumbnail" withString:@"bmiddle"];
+                
+                NSURL *url_small = [NSURL URLWithString:small];
+                NSData *data_small = [[NSData alloc]initWithContentsOfURL:url_small];
+                
+                NSURL *url_big = [NSURL URLWithString:big];
+                NSData *data_big = [[NSData alloc]initWithContentsOfURL:url_big];
+                
+                NSNumber *notLoaded = [NSNumber numberWithInt:0];
+                
+                [db executeUpdate: @"INSERT INTO Phoice(Section, IndexRow, Loaded, TextLabel, DetailDescription, SmallPhoto, SmallPhotoAddress, BigPhoto, BigPhotoAddress, AudioFile) VALUES (?,?,?,?,?,?,?,?,?,?);", nil, nil, notLoaded, nil, nil, data_small, small, data_big, big, nil ];
+                
+            }
+        }
+    }
+    
+    [db close];
+}
+
+-(void)obtainDataFromDB{
+    //start off with initializing a plist file
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentDirectory = [paths objectAtIndex:0];
+    Plist_filePath = [documentDirectory stringByAppendingPathComponent:@"image.plist"];
+    BOOL success;
+    
+    if ([[NSFileManager defaultManager]fileExistsAtPath:Plist_filePath]){
+        NSLog(@"Plist already created");
+    }
+    
+    else{
+        NSMutableArray *mainArray = [[NSMutableArray alloc]init];
+        NSArray *array = [[NSArray alloc]initWithObjects:@"data_small", @"data_big", nil];
+        [mainArray addObject:array];
+        success = [mainArray writeToFile:Plist_filePath atomically:YES];
+    }
+    
+    [db open];
+    if ([db open]){
+        FMResultSet *result = [db executeQuery:@"select * from Phoice"];
+        while ([result next]){
+            int loaded = [result intForColumn:@"Loaded"];
+            if (!loaded){
+                NSData *small_data = [result dataForColumn:@"SmallPhoto"];
+                NSData *big_data = [result dataForColumn:@"BigPhoto"];
+                NSArray *array = [[NSArray alloc]initWithObjects:small_data, big_data, nil];
+                NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+                if(![mainArray containsObject:array]){
+                    [mainArray addObject:array];
+                    success = [mainArray writeToFile:Plist_filePath atomically:YES];
+                    int currentRow = [result intForColumn:@"ID"];
+                    
+//                    NSString *updateSql = [NSString stringWithFormat:
+//                                           @"UPDATE %@ SET %@ = %@ WHERE %@ = %@",
+//                                           @"Phoice",  @"Loaded",  [NSNumber numberWithInt:1] ,@"ID",  [NSNumber numberWithInt:currentRow]];
+//                    success = [db executeQuery:updateSql];
+                    
+                    
+                    success = [db executeUpdate:@"UPDATE Phoice SET Loaded = ? WHERE ID = ?", [NSNumber numberWithInt:1], [NSNumber numberWithInt:currentRow]];
+                    
+                    FMResultSet *check = [db executeQuery:@"select * from Phoice where ID = ?", [NSNumber numberWithInt:currentRow]];
+                    
+                    int ans = [check intForColumn:@"Loaded"];
+                    if (ans == 0){
+                        NSLog(@"loaded is not changed");
+                    }
+                }
+            }
             
         }
     }
@@ -91,8 +170,10 @@
     [db close];
 }
 
-
-
+- (void)viewWillDisappear:(BOOL)animated
+{
+    [super viewWillDisappear:animated];
+}
 
 -(void)initializeView{
     //setup navigation bar
@@ -137,8 +218,8 @@
 }
 
 -(void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary<NSString *,id> *)info{
-    UIImage *chosenImg = [info objectForKey:@"UIImagePickerControllerOriginalImage"];
-    NSString *description, *detail;
+//    UIImage *chosenImg = [info objectForKey:@"UIImagePickerControllerOriginalImage"];
+//    NSString *description, *detail;
     
     NSLog(@"user selected something");
 }
@@ -204,6 +285,10 @@
     detail.audioLocation = cell.recordingAdress;
     
     [self.navigationController pushViewController:detail animated:YES];
+    
+    
+    cell.selected = NO;
+    
 }
 
 
@@ -220,13 +305,21 @@
     
     int index = (int)indexPath.row;
     int num = index % contentArray.count;
-
-    NSString *str = contentArray[num];
-    NSURL *url = [NSURL URLWithString:str];
-    NSData *data = [[NSData alloc]initWithContentsOfURL:url];
-    UIImage*img = [[UIImage alloc]initWithData:data];
+    
+    NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+    NSArray *array = mainArray[num+1];
+    NSData *small_data = array[0];
+    
+    UIImage *img = [[UIImage alloc]initWithData:small_data];
     cell.imageView.image = img;
     cell.imageView.tag = num;
+
+//    NSString *str = contentArray[num];
+//    NSURL *url = [NSURL URLWithString:str];
+//    NSData *data = [[NSData alloc]initWithContentsOfURL:url];
+//    UIImage*img = [[UIImage alloc]initWithData:data];
+//    cell.imageView.image = img;
+//    cell.imageView.tag = num;
 
     UITapGestureRecognizer *click = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(continuousView:)];
     click.numberOfTapsRequired = 1;
@@ -307,17 +400,19 @@
     
     scrView = [[UIScrollView alloc]init];
     scrView.frame = [UIScreen mainScreen].bounds;
+    scrView.frame = CGRectMake(0, 0, width+20, [UIScreen mainScreen].bounds.size.height);
     scrView.backgroundColor = [UIColor blackColor];
     //scrView.multipleTouchEnabled = YES;
     //scrView.maximumZoomScale = 2.0;
     scrView.delegate = self;
     scrView.userInteractionEnabled = YES;
     scrView.pagingEnabled = YES;
-    scrView.contentSize = CGSizeMake(width * 3, scrView.bounds.size.height);
-    [scrView setContentOffset:CGPointMake(width, 0) animated:YES];
+    scrView.contentSize = CGSizeMake(width * 3 +60 , scrView.bounds.size.height);
+    [scrView setContentOffset:CGPointMake(width+20, 0) animated:YES];
     UITapGestureRecognizer *back = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(removeScrollView:)];
     back.numberOfTapsRequired = 1;
     [scrView addGestureRecognizer:back];
+
 }
 
 -(UIView*) viewForZoomingInScrollView:(UIScrollView *)scrollView{
@@ -325,7 +420,8 @@
 }
 
 -(void)continuousView: (UITapGestureRecognizer*) tap{
-
+    [self.navigationController setToolbarHidden:YES animated:YES];
+    
     int index = (int)tap.view.tag;
     currentIndex = index;
     
@@ -400,19 +496,20 @@
         afterIndex = 0;
     }
     
+    
     beforeView = [[UIImageView alloc]initWithFrame:CGRectMake(0, 0, width, height)];
     beforeView.contentMode = UIViewContentModeScaleAspectFit;
     UIImage *imageBefore = [self loadImageViewAtIndex:beforeIndex];
     beforeView.image = imageBefore;
     [scrView addSubview: beforeView];
     
-    imageView = [[UIImageView alloc]initWithFrame:CGRectMake(width, 0, width, height)];
+    imageView = [[UIImageView alloc]initWithFrame:CGRectMake(width +20 , 0, width, height)];
     imageView.contentMode = UIViewContentModeScaleAspectFit;
     UIImage *imageNow = [self loadImageViewAtIndex:currentIndex];
     imageView.image = imageNow;
     [scrView addSubview:imageView];
     
-    afterView = [[UIImageView alloc]initWithFrame:CGRectMake(width*2,0,width, height)];
+    afterView = [[UIImageView alloc]initWithFrame:CGRectMake(width*2 + 40 ,0,width, height)];
     afterView.contentMode = UIViewContentModeScaleAspectFit;
     UIImage *imageAfter = [self loadImageViewAtIndex:afterIndex];
     afterView.image = imageAfter;
@@ -425,7 +522,7 @@
         scrView.backgroundColor = [UIColor clearColor];
     } completion:^(BOOL finished) {
         [pageControl removeFromSuperview];
-        
+        [self.navigationController setToolbarHidden:NO animated:NO];
         [scrView removeFromSuperview];
         
         beforeView.image = nil;
@@ -438,14 +535,51 @@
 }
 
 -(UIImage*)loadImageViewAtIndex:(int)index{
-    NSString *address = contentArray[index];
-    NSURL *url = [NSURL URLWithString:[address stringByReplacingOccurrencesOfString:@"thumbnail" withString:@"bmiddle"]];
-    NSData *data = [[NSData alloc]initWithContentsOfURL:url];
+//    NSString *address = contentArray[index];
+//    NSURL *url = [NSURL URLWithString:[address stringByReplacingOccurrencesOfString:@"thumbnail" withString:@"bmiddle"]];
+//    NSData *data = [[NSData alloc]initWithContentsOfURL:url];
+//    UIImage *img = [[UIImage alloc]initWithData:data];
+    NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+    NSArray *arr = mainArray[index+1];
+    NSData *data = arr[1];
     UIImage *img = [[UIImage alloc]initWithData:data];
-
     
     return img;
 }
+
+
+
+//-(void) scrollViewWillBeginDecelerating:(UIScrollView *)scrollView{
+//    CGFloat width = [UIScreen mainScreen].bounds.size.width;
+//    
+//    CGPoint offset = [scrView contentOffset];
+//    
+//    int index;
+//    
+//    if(offset.x > width * 1.5){
+//        if (currentIndex == 5)
+//            index = 0;
+//        else
+//            index = currentIndex + 1;
+//        
+//        [self updateThreeImageViewsWithIndex:index];
+//        currentIndex = index;
+//    }
+//    
+//    else if (offset.x < width * 0.5){
+//        if (currentIndex == 0)
+//            index = 5;
+//        else
+//            index = currentIndex - 1;
+//        
+//        [self updateThreeImageViewsWithIndex:index];
+//        currentIndex = index;
+//    }
+//    
+//    pageControl.currentPage = currentIndex;
+//    [scrView setContentOffset:CGPointMake(width, 0) animated:YES];
+////    scrView.contentOffset = CGPointMake(width, 0);
+//}
 
 
 
@@ -477,8 +611,11 @@
     }
     
     pageControl.currentPage = currentIndex;
-    [scrView setContentOffset:CGPointMake(width, 0) animated:NO];
+    [scrView setContentOffset:CGPointMake(width+20, 0) animated:NO];
+// scrView.contentOffset = CGPointMake(width, 0);
+
 }
+
 
 //- (void)scrollViewDidScroll:(UIScrollView *)scrollView{
 //    CGPoint offset = [scrView contentOffset];
