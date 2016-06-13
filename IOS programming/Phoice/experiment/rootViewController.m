@@ -133,10 +133,12 @@
     }
     
     if ([db open]){
+
+        FMResultSet *result = [db executeQuery:@"select * from Phoice"];
+        
         //beginTransaction to make sure that the update is not done in a one-to-one manner, but altogether
         success = [db beginTransaction];
         
-        FMResultSet *result = [db executeQuery:@"select * from Phoice"];
         while ([result next]){
             int loaded = [result intForColumn:@"Loaded"];
             if (!loaded){
@@ -157,20 +159,18 @@
                 //
                 //                    success = [db executeUpdate:@"UPDATE Phoice SET Loaded = ? WHERE ID = ?", [NSNumber numberWithInt:1], [NSNumber numberWithInt:currentRow]];
                 
-                FMResultSet *check = [db executeQuery:@"select * from Phoice where ID = ?", [NSNumber numberWithInt:currentRow]];
-                
-                int ans = [check intForColumn:@"Loaded"];
-                if (ans == 0){
-                    NSLog(@"loaded is not changed");
+//                FMResultSet *check = [db executeQuery:@"select * from Phoice where ID = ?", [NSNumber numberWithInt:currentRow]];
+//                
+//                int ans = [check intForColumn:@"Loaded"];
+//                if (ans == 0){
+//                    NSLog(@"loaded is not changed");
                 }
             }
-            
+        [db commit];
         }
-        
-        success = [db commit];
-    }
-    success = [db close];
+    [db close];
 }
+
 
 - (void)viewWillDisappear:(BOOL)animated
 {
