@@ -35,6 +35,8 @@
     FMDatabase *db;
 }
 
+//next step is to add the loading procedure from database to cache in the startup step in async
+
 -(void)loadView{
     [super loadView];
     
