@@ -126,14 +126,17 @@
     }
     
     else{
-        NSMutableArray *mainArray = [[NSMutableArray alloc]init];
         NSArray *array = [[NSArray alloc]initWithObjects:@"data_small", @"data_big", nil];
+        NSMutableArray *mainArray = [[NSMutableArray alloc]init];
         [mainArray addObject:array];
         success = [mainArray writeToFile:Plist_filePath atomically:YES];
     }
     
     [db open];
     if ([db open]){
+        //beginTransaction to make sure that the update is not done in a one-to-one manner, but altogether
+        //success = [db beginTransaction];
+        
         FMResultSet *result = [db executeQuery:@"select * from Phoice"];
         while ([result next]){
             int loaded = [result intForColumn:@"Loaded"];
@@ -142,32 +145,32 @@
                 NSData *big_data = [result dataForColumn:@"BigPhoto"];
                 NSArray *array = [[NSArray alloc]initWithObjects:small_data, big_data, nil];
                 NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
-                if(![mainArray containsObject:array]){
-                    [mainArray addObject:array];
-                    success = [mainArray writeToFile:Plist_filePath atomically:YES];
-                    int currentRow = [result intForColumn:@"ID"];
-                    
-//                    NSString *updateSql = [NSString stringWithFormat:
-//                                           @"UPDATE %@ SET %@ = %@ WHERE %@ = %@",
-//                                           @"Phoice",  @"Loaded",  [NSNumber numberWithInt:1] ,@"ID",  [NSNumber numberWithInt:currentRow]];
-//                    success = [db executeQuery:updateSql];
-                    
-                    
-                    success = [db executeUpdate:@"UPDATE Phoice SET Loaded = ? WHERE ID = ?", [NSNumber numberWithInt:1], [NSNumber numberWithInt:currentRow]];
-                    
-                    FMResultSet *check = [db executeQuery:@"select * from Phoice where ID = ?", [NSNumber numberWithInt:currentRow]];
-                    
-                    int ans = [check intForColumn:@"Loaded"];
-                    if (ans == 0){
-                        NSLog(@"loaded is not changed");
-                    }
+                [mainArray addObject:array];
+                success = [mainArray writeToFile:Plist_filePath atomically:YES];
+                int currentRow = [result intForColumn:@"ID"];
+                
+                NSString *updateSql = [NSString stringWithFormat:
+                                       @"UPDATE %@ SET %@ = %@ WHERE %@ = %@",
+                                       @"Phoice",  @"Loaded",  [NSNumber numberWithInt:1] ,@"ID",  [NSNumber numberWithInt:currentRow]];
+                
+                success = [db executeQuery:updateSql];
+                
+                //
+                //                    success = [db executeUpdate:@"UPDATE Phoice SET Loaded = ? WHERE ID = ?", [NSNumber numberWithInt:1], [NSNumber numberWithInt:currentRow]];
+                
+                FMResultSet *check = [db executeQuery:@"select * from Phoice where ID = ?", [NSNumber numberWithInt:currentRow]];
+                
+                int ans = [check intForColumn:@"Loaded"];
+                if (ans == 0){
+                    NSLog(@"loaded is not changed");
                 }
             }
             
         }
+        
+        //success = [db commit];
     }
-    
-    [db close];
+    success = [db close];
 }
 
 - (void)viewWillDisappear:(BOOL)animated
@@ -180,7 +183,7 @@
     self.navigationController.navigationBar.barStyle = UIBarStyleBlackTranslucent;
     self.navigationController.toolbar.barStyle = UIBarStyleBlackTranslucent;
     self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
-    self.navigationController.toolbar.tintColor = [UIColor whiteColor];
+    self.navigationController.toolbar.tintColor = [UIColor blackColor];
     self.title = @"Phoice";
     
     
@@ -193,7 +196,7 @@
     //pickImage.tintColor = [UIColor redColor];
     self.navigationItem.rightBarButtonItem = pickImage;
     [self.navigationController setToolbarHidden:NO animated:YES];
-    [self setToolbarItems:@[flexItem] animated:NO];
+    //[self setToolbarItems:@[flexItem] animated:NO];
 }
 
 -(void)chooseImage: (UIBarButtonItem*) sender{
@@ -228,7 +231,7 @@
 -(void) initializeTableView{
     
     self.automaticallyAdjustsScrollViewInsets = NO;
-    self.tblView = [[UITableView alloc] initWithFrame:CGRectMake(0, self.navigationController.navigationBar.frame.origin.y + self.navigationController.navigationBar.frame.size.height, self.view.frame.size.width, self.view.frame.size.height - self.navigationController.navigationBar.frame.size.height *2 - self.navigationController.navigationBar.frame.origin.y) style:UITableViewStylePlain];
+    self.tblView = [[UITableView alloc] initWithFrame:CGRectMake(0, self.navigationController.navigationBar.frame.origin.y + self.navigationController.navigationBar.frame.size.height, self.view.frame.size.width, self.view.frame.size.height - self.navigationController.navigationBar.frame.size.height *2 ) style:UITableViewStylePlain];
     
     self.tblView.backgroundColor = [UIColor grayColor];
     
@@ -307,7 +310,7 @@
     int num = index % contentArray.count;
     
     NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
-    NSArray *array = mainArray[num+1];
+    NSArray *array = mainArray[num + 1];
     NSData *small_data = array[0];
     
     UIImage *img = [[UIImage alloc]initWithData:small_data];
