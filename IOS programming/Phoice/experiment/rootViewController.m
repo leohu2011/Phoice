@@ -132,10 +132,9 @@
         success = [mainArray writeToFile:Plist_filePath atomically:YES];
     }
     
-    [db open];
     if ([db open]){
         //beginTransaction to make sure that the update is not done in a one-to-one manner, but altogether
-        //success = [db beginTransaction];
+        success = [db beginTransaction];
         
         FMResultSet *result = [db executeQuery:@"select * from Phoice"];
         while ([result next]){
@@ -153,7 +152,7 @@
                                        @"UPDATE %@ SET %@ = %@ WHERE %@ = %@",
                                        @"Phoice",  @"Loaded",  [NSNumber numberWithInt:1] ,@"ID",  [NSNumber numberWithInt:currentRow]];
                 
-                success = [db executeQuery:updateSql];
+                success = [db executeUpdate:updateSql];
                 
                 //
                 //                    success = [db executeUpdate:@"UPDATE Phoice SET Loaded = ? WHERE ID = ?", [NSNumber numberWithInt:1], [NSNumber numberWithInt:currentRow]];
@@ -168,7 +167,7 @@
             
         }
         
-        //success = [db commit];
+        success = [db commit];
     }
     success = [db close];
 }
