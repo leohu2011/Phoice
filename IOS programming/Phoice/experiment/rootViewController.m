@@ -220,8 +220,24 @@
 }
 
 -(void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary<NSString *,id> *)info{
-//    UIImage *chosenImg = [info objectForKey:@"UIImagePickerControllerOriginalImage"];
-//    NSString *description, *detail;
+    UIImage *chosenImg = [info objectForKey:@"UIImagePickerControllerOriginalImage"];
+    
+    NSData *big_data = UIImagePNGRepresentation(chosenImg);
+    NSData *small_data = UIImageJPEGRepresentation(chosenImg, 0.5);
+    
+    //prompt the user to enter these two fields
+    NSString *description, *detail;
+
+    
+    //save onto plist
+    NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+    NSArray *array = [[NSArray alloc]initWithObjects:small_data, big_data, nil];
+    [mainArray addObject:array];
+    
+    //update FMDB
+    
+    
+
     
     NSLog(@"user selected something");
 }
@@ -309,19 +325,14 @@
     int num = index % contentArray.count;
     
     NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+    //here is num + 1 because the first object in mainArray is the default small_data/big_data
+    //will consider scrapping that for simplicity
     NSArray *array = mainArray[num + 1];
     NSData *small_data = array[0];
     
     UIImage *img = [[UIImage alloc]initWithData:small_data];
     cell.imageView.image = img;
     cell.imageView.tag = num;
-
-//    NSString *str = contentArray[num];
-//    NSURL *url = [NSURL URLWithString:str];
-//    NSData *data = [[NSData alloc]initWithContentsOfURL:url];
-//    UIImage*img = [[UIImage alloc]initWithData:data];
-//    cell.imageView.image = img;
-//    cell.imageView.tag = num;
 
     UITapGestureRecognizer *click = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(continuousView:)];
     click.numberOfTapsRequired = 1;
@@ -352,34 +363,6 @@
     return filePath;
 }
 
-//-(UITableViewCell*) tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
-//    UITableViewCell *cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:nil];
-//
-//      int index = (int)indexPath.row;
-//      int num = index % contentArray.count;
-////    int rand = arc4random_uniform((int)pathArray.count);
-//
-//    NSString *str = contentArray[num];
-//    NSURL *url = [NSURL URLWithString:str];
-//    NSData *data = [[NSData alloc]initWithContentsOfURL:url];
-//    UIImage*img = [[UIImage alloc]initWithData:data];
-//    cell.imageView.image = img;
-//    cell.imageView.tag = num;
-//    
-//
-//    UITapGestureRecognizer *click = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(continuousView:)];
-//    click.numberOfTapsRequired = 1;
-//    cell.imageView.userInteractionEnabled = YES;
-//    //cell.imageView.multipleTouchEnabled = YES;
-//    [cell.imageView addGestureRecognizer:click];
-//    
-//    
-//    cell.textLabel.text = [NSString stringWithFormat:@"#%d", num];
-//    
-//    cell.detailTextLabel.text = contentArray[num];
-//
-//    return cell;
-//}
 
 -(void)initializePageControl{
     CGFloat width = [UIScreen mainScreen].bounds.size.width;
@@ -438,15 +421,6 @@
     
 //    imageView.userInteractionEnabled = YES;
 //    imageView.multipleTouchEnabled = YES;
-    
-    
-//    [UIView animateWithDuration:0.3 animations:^{
-//        imageView.frame=CGRectMake(0,([UIScreen mainScreen].bounds.size.height-imgView.image.size.height*[UIScreen mainScreen].bounds.size.width/imgView.image.size.width)/2,
-//                                   [UIScreen mainScreen].bounds.size.width,
-//                                   imgView.image.size.height*[UIScreen mainScreen].bounds.size.width/imgView.image.size.width);
-//        scrView.alpha=1;
-//    } completion:^(BOOL finished) {
-//    }];
     
         [UIView animateWithDuration:0.3 animations:^{
             scrView.backgroundColor = [UIColor blackColor];
