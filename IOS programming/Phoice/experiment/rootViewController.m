@@ -17,7 +17,7 @@
 @end
 
 @implementation rootViewController{
-    NSArray *contentArray, *pathArray;
+    NSArray *contentArray;
     UIScrollView *scrView;
     UIImageView *imageView;
     UIImageView *beforeView;
@@ -25,6 +25,8 @@
     int currentIndex;
     UIPageControl *pageControl;
 //    NSIndexPath *currentIndexPath;
+    
+    NSInteger numberOfItems;
     
     UIImagePickerController *imgPickerController;
     UIBarButtonItem *pickImage;
@@ -155,20 +157,14 @@
                                        @"Phoice",  @"Loaded",  [NSNumber numberWithInt:1] ,@"ID",  [NSNumber numberWithInt:currentRow]];
                 
                 success = [db executeUpdate:updateSql];
-                
-                //
-                //                    success = [db executeUpdate:@"UPDATE Phoice SET Loaded = ? WHERE ID = ?", [NSNumber numberWithInt:1], [NSNumber numberWithInt:currentRow]];
-                
-//                FMResultSet *check = [db executeQuery:@"select * from Phoice where ID = ?", [NSNumber numberWithInt:currentRow]];
-//                
-//                int ans = [check intForColumn:@"Loaded"];
-//                if (ans == 0){
-//                    NSLog(@"loaded is not changed");
                 }
             }
         [db commit];
         }
     [db close];
+    
+    NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+    numberOfItems = mainArray.count - 1;
 }
 
 
@@ -221,25 +217,69 @@
 
 -(void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary<NSString *,id> *)info{
     UIImage *chosenImg = [info objectForKey:@"UIImagePickerControllerOriginalImage"];
+//    NSURL *url = [info objectForKey:@"UIImagePickerControllerReferenceURL"];
     
     NSData *big_data = UIImagePNGRepresentation(chosenImg);
     NSData *small_data = UIImageJPEGRepresentation(chosenImg, 0.5);
     
     //prompt the user to enter these two fields
-    NSString *description, *detail;
-
+    __block NSString *description, *detail;
     
-    //save onto plist
-    NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
-    NSArray *array = [[NSArray alloc]initWithObjects:small_data, big_data, nil];
-    [mainArray addObject:array];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"This is an Alert" message:@"Input Photo Info" preferredStyle:UIAlertControllerStyleAlert];
     
-    //update FMDB
+    [alert addTextFieldWithConfigurationHandler:^(UITextField * textField){
+        textField.placeholder = @"textLabel";
+    }];
     
+    [alert addTextFieldWithConfigurationHandler:^(UITextField * textField){
+        textField.placeholder = @"detailInfo";
+    }];
     
-
+    UIAlertAction *action = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *act){
+        UITextField *text1 = alert.textFields.firstObject;
+        UITextField *text2 = alert.textFields.lastObject;
+        
+        description = text1.text;
+        detail = text2.text;
+        
+        //saving and updating
+        NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+        NSArray *array = [[NSArray alloc]initWithObjects:small_data, big_data, nil];
+        if(![mainArray containsObject:array]){
+            //save onto plist
+            [mainArray addObject:array];
+            [mainArray writeToFile:Plist_filePath atomically:YES];
+            
+            //update FMDB
+            if ([db open]){
+                [db beginTransaction];
+                
+                if (description == nil) description = @"from user Library";
+                if (detail == nil) description = @"from user Library";
+                
+                [db executeUpdate:@"INSERT INTO Phoice(Section, IndexRow, Loaded, TextLabel, DetailDescription, SmallPhoto, SmallPhotoAddress, BigPhoto, BigPhotoAddress, AudioFile) VALUES (?,?,?,?,?,?,?,?,?,?);", nil, nil, [NSNumber numberWithInteger:1], nil, nil, small_data, description, big_data, detail, nil ];
+                
+                [db commit];
+            }
+        }
+        
+        [db close];
+        
+        //back to Phoice
+        [self dismissViewControllerAnimated:YES completion:^(void){
+            NSLog(@"user selected something");
+        }];
+        
+        //on completion need to reload the tableView
+        numberOfItems += 1;
+        [self.tblView reloadData];
+    }];
+    UIAlertAction *action2 = [UIAlertAction actionWithTitle:@"Dismiss" style:UIAlertActionStyleCancel handler:nil];
     
-    NSLog(@"user selected something");
+    [alert addAction:action];
+    [alert addAction:action2];
+    
+    [picker presentViewController:alert animated:YES completion:nil];
 }
 
 
@@ -280,7 +320,7 @@
 
 
 -(NSInteger) tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
-    return contentArray.count;
+    return numberOfItems;
 }
 
 -(NSInteger) numberOfSectionsInTableView:(UITableView *)tableView{
@@ -291,7 +331,7 @@
     
     tableViewCell *cell = [_tblView cellForRowAtIndexPath:indexPath];
     
-    int temp = (int)indexPath.row % contentArray.count;
+    int temp = (int)indexPath.row % numberOfItems;
     
     NSString *address = contentArray[temp];
     
@@ -322,7 +362,7 @@
     }
     
     int index = (int)indexPath.row;
-    int num = index % contentArray.count;
+    int num = index % numberOfItems;
     
     NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
     //here is num + 1 because the first object in mainArray is the default small_data/big_data
@@ -341,9 +381,9 @@
     [cell.imageView addGestureRecognizer:click];
 
     cell.textLabel.text = [NSString stringWithFormat:@"#%d", num];
-    cell.detailTextLabel.text = contentArray[num];
+//    cell.detailTextLabel.text = contentArray[num];
     
-    cell.photoAddress = contentArray[num];
+//    cell.photoAddress = contentArray[num];
     cell.recordingAdress = [self obtainCellRecordingAddressWithIndex: index];
     cell.tag = index;
 
@@ -369,8 +409,8 @@
     CGFloat height = [UIScreen mainScreen].bounds.size.height;
     
     pageControl = [[UIPageControl alloc]init];
-    CGSize size = [pageControl sizeForNumberOfPages:contentArray.count];
-    pageControl.numberOfPages = contentArray.count;
+    CGSize size = [pageControl sizeForNumberOfPages:numberOfItems];
+    pageControl.numberOfPages = numberOfItems;
     pageControl.bounds = CGRectMake(0, 0, size.width, size.height);
     pageControl.center = CGPointMake(width *1.5, height -10);
     pageControl.pageIndicatorTintColor=[UIColor whiteColor];
@@ -419,15 +459,15 @@
     
     imageView.hidden = YES;
     
-//    imageView.userInteractionEnabled = YES;
-//    imageView.multipleTouchEnabled = YES;
+    //    imageView.userInteractionEnabled = YES;
+    //    imageView.multipleTouchEnabled = YES;
     
-        [UIView animateWithDuration:0.3 animations:^{
-            scrView.backgroundColor = [UIColor blackColor];
-            }
-        completion:^(BOOL finished) {
-            imageView.hidden = NO;
-        }];
+    [UIView animateWithDuration:0.3 animations:^{
+        scrView.backgroundColor = [UIColor blackColor];
+    }
+                     completion:^(BOOL finished) {
+                         imageView.hidden = NO;
+                     }];
     
 }
 
@@ -436,10 +476,10 @@
     
     leftImageIndex = index - 1;
     if (index == 0)
-        leftImageIndex = 5;
+        leftImageIndex = (int)numberOfItems-1;
     
     rightImageIndex = index + 1;
-    if (index == 5)
+    if (index == numberOfItems-1)
         rightImageIndex = 0;
     
     UIImage *leftImage = [UIImage new];
@@ -465,10 +505,10 @@
     afterIndex = currentIndex + 1;
     
     if (currentIndex == 0){
-        beforeIndex = 5;
+        beforeIndex = (int)numberOfItems-1;
     }
     
-    else if(currentIndex == 5){
+    else if(currentIndex == numberOfItems-1){
         afterIndex = 0;
     }
     
@@ -511,10 +551,6 @@
 }
 
 -(UIImage*)loadImageViewAtIndex:(int)index{
-//    NSString *address = contentArray[index];
-//    NSURL *url = [NSURL URLWithString:[address stringByReplacingOccurrencesOfString:@"thumbnail" withString:@"bmiddle"]];
-//    NSData *data = [[NSData alloc]initWithContentsOfURL:url];
-//    UIImage *img = [[UIImage alloc]initWithData:data];
     NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
     NSArray *arr = mainArray[index+1];
     NSData *data = arr[1];
@@ -522,42 +558,6 @@
     
     return img;
 }
-
-
-
-//-(void) scrollViewWillBeginDecelerating:(UIScrollView *)scrollView{
-//    CGFloat width = [UIScreen mainScreen].bounds.size.width;
-//    
-//    CGPoint offset = [scrView contentOffset];
-//    
-//    int index;
-//    
-//    if(offset.x > width * 1.5){
-//        if (currentIndex == 5)
-//            index = 0;
-//        else
-//            index = currentIndex + 1;
-//        
-//        [self updateThreeImageViewsWithIndex:index];
-//        currentIndex = index;
-//    }
-//    
-//    else if (offset.x < width * 0.5){
-//        if (currentIndex == 0)
-//            index = 5;
-//        else
-//            index = currentIndex - 1;
-//        
-//        [self updateThreeImageViewsWithIndex:index];
-//        currentIndex = index;
-//    }
-//    
-//    pageControl.currentPage = currentIndex;
-//    [scrView setContentOffset:CGPointMake(width, 0) animated:YES];
-////    scrView.contentOffset = CGPointMake(width, 0);
-//}
-
-
 
 -(void) scrollViewDidEndDecelerating:(UIScrollView *)scrollView{
     CGFloat width = [UIScreen mainScreen].bounds.size.width;
@@ -567,7 +567,7 @@
     int index;
     
     if(offset.x > width * 1.5){
-        if (currentIndex == 5)
+        if (currentIndex == numberOfItems - 1)
             index = 0;
         else
             index = currentIndex + 1;
@@ -578,7 +578,7 @@
     
     else if (offset.x < width * 0.5){
         if (currentIndex == 0)
-            index = 5;
+            index = (int)numberOfItems - 1;
         else
             index = currentIndex - 1;
         
@@ -588,31 +588,8 @@
     
     pageControl.currentPage = currentIndex;
     [scrView setContentOffset:CGPointMake(width+20, 0) animated:NO];
-// scrView.contentOffset = CGPointMake(width, 0);
 
 }
-
-
-//- (void)scrollViewDidScroll:(UIScrollView *)scrollView{
-//    CGPoint offset = [scrView contentOffset];
-//    
-//    if (offset.x > [UIScreen mainScreen].bounds.size.width){
-//        int index = currentIndex + 1;
-//        if (index > 5) index = 0;
-//        
-//        [imgView removeFromSuperview];
-//        [self loadImageViewAtIndex:index];
-//    }
-//    
-//    else if (offset.x < [UIScreen mainScreen].bounds.size.width){
-//        int index = currentIndex - 1;
-//        if (index < 0) index = 5;
-//        
-//        [imgView removeFromSuperview];
-//        [self loadImageViewAtIndex:index];
-//    }
-//}
-
 
 
 -(void)changeCellInfoWithText:(NSString *)string andDetailInfo:(NSString *)detail onIndexPath:(NSIndexPath *)indexpath{
