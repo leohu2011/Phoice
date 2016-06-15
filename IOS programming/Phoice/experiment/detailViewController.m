@@ -101,9 +101,30 @@
     //setup detail image view
     CGFloat width = [UIScreen mainScreen].bounds.size.width;
     int index = (int)pathChosen.row;
-    NSURL *url = [[NSURL alloc]initWithString:[self.photoLocation stringByReplacingOccurrencesOfString:@"thumbnail" withString:@"bmiddle"]];
-    NSData *data = [[NSData alloc]initWithContentsOfURL: url];
-    UIImage *img = [[UIImage alloc]initWithData:data];
+    
+//    NSURL *url;
+//    if ([self.photoLocation containsString:@"thumbnail"]){
+//        url = [[NSURL alloc]initWithString:[self.photoLocation stringByReplacingOccurrencesOfString:@"thumbnail" withString:@"bmiddle"]];
+//    }
+//    else{
+//        url = [[NSURL alloc]initWithString:self.photoLocation];
+//    }
+//    NSData *data = [[NSData alloc]initWithContentsOfURL: url];
+//    UIImage *img = [[UIImage alloc]initWithData:data];
+    
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentDirectory = [paths objectAtIndex:0];
+    NSString *Plist_filePath = [documentDirectory stringByAppendingPathComponent:@"image.plist"];
+    
+    NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+    NSData *big_data;
+    for (NSArray *arr in mainArray){
+        if ([arr[2] isEqualToString:self.photoLocation]){
+            big_data = arr[1];
+            break;
+        }
+    }
+    UIImage *img = [[UIImage alloc]initWithData:big_data];
     
     UIImageView *imgView = [[UIImageView alloc]initWithImage:img];
     imgView.frame = (CGRectMake(0, 0, width * 0.5, self.view.frame.size.height *0.3));

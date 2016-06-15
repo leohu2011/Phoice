@@ -36,9 +36,11 @@
     NSString *dbPath;
     FMDatabase *db;
     
-    //local cache storage
+    //local cache storage containing the two nsdata for two images
+    //each array element contains: <small_data, big_data, small_address/assetURL>
     NSString *Plist_filePath;
-    
+    //array containing description and detail, NOTICE that this array much match one-to-one to that of the array in the above Plist
+    NSMutableArray *cellInfoArray;
 }
 
 //next step is to add the loading procedure from database to cache in the startup step in async
@@ -128,7 +130,7 @@
     }
     
     else{
-        NSArray *array = [[NSArray alloc]initWithObjects:@"data_small", @"data_big", nil];
+        NSArray *array = [[NSArray alloc]initWithObjects:@"data_small", @"data_big", @"small_address", nil];
         NSMutableArray *mainArray = [[NSMutableArray alloc]init];
         [mainArray addObject:array];
         success = [mainArray writeToFile:Plist_filePath atomically:YES];
@@ -146,7 +148,8 @@
             if (!loaded){
                 NSData *small_data = [result dataForColumn:@"SmallPhoto"];
                 NSData *big_data = [result dataForColumn:@"BigPhoto"];
-                NSArray *array = [[NSArray alloc]initWithObjects:small_data, big_data, nil];
+                NSString *small_address = [result stringForColumn:@"SmallPhotoAddress"];
+                NSArray *array = [[NSArray alloc]initWithObjects:small_data, big_data, small_address, nil];
                 NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
                 [mainArray addObject:array];
                 success = [mainArray writeToFile:Plist_filePath atomically:YES];
@@ -204,10 +207,14 @@
     }
     imgPickerController.delegate = self;
     imgPickerController.allowsEditing = NO;
+    
+//    [self performSelector:@selector(gotoImagePicker) withObject:nil afterDelay:0.5f];
+    
     [self presentViewController:imgPickerController animated:YES completion:^(void){
         NSLog(@"going into photo library");
     }];
 }
+
 
 -(void)imagePickerControllerDidCancel:(UIImagePickerController *)picker{
     [self dismissViewControllerAnimated:YES completion:^(void){
@@ -217,10 +224,36 @@
 
 -(void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary<NSString *,id> *)info{
     UIImage *chosenImg = [info objectForKey:@"UIImagePickerControllerOriginalImage"];
-//    NSURL *url = [info objectForKey:@"UIImagePickerControllerReferenceURL"];
+    NSURL *small_url = [info objectForKey:@"UIImagePickerControllerReferenceURL"];
+    NSString *small_address = [small_url absoluteString];
     
     NSData *big_data = UIImagePNGRepresentation(chosenImg);
     NSData *small_data = UIImageJPEGRepresentation(chosenImg, 0.5);
+    
+    //saving and updating
+    NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+    NSArray *array = [[NSArray alloc]initWithObjects:small_data, big_data, small_address, nil];
+    BOOL contain = NO;
+    
+    for (NSArray *arr in mainArray){
+        if ([arr[2] isEqualToString:small_address]){
+            contain = YES;
+            break;
+        }
+    }
+    
+    //alert if the user is selecting the same photo to incorporate
+    if (contain){
+        //tell the user to try again
+        UIAlertController *repeatSelection = [UIAlertController alertControllerWithTitle:@"This is an Alert" message:@"repeated selection" preferredStyle:UIAlertControllerStyleAlert];
+        
+        UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil];
+        
+        [repeatSelection addAction:cancel];
+        
+        [picker presentViewController:repeatSelection animated:YES completion:nil];
+    }
+
     
     //prompt the user to enter these two fields
     __block NSString *description, *detail;
@@ -236,19 +269,21 @@
     }];
     
     UIAlertAction *action = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *act){
+        
         UITextField *text1 = alert.textFields.firstObject;
         UITextField *text2 = alert.textFields.lastObject;
-        
         description = text1.text;
         detail = text2.text;
         
-        //saving and updating
-        NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
-        NSArray *array = [[NSArray alloc]initWithObjects:small_data, big_data, nil];
-        if(![mainArray containsObject:array]){
+
+        
+        if(!contain){
             //save onto plist
             [mainArray addObject:array];
-            [mainArray writeToFile:Plist_filePath atomically:YES];
+            BOOL success = [mainArray writeToFile:Plist_filePath atomically:YES];
+            if (!success){
+                NSLog(@"failure writing new item onto Plist");
+            }
             
             //update FMDB
             if ([db open]){
@@ -333,7 +368,10 @@
     
     int temp = (int)indexPath.row % numberOfItems;
     
-    NSString *address = contentArray[temp];
+//    NSString *address = contentArray[temp];
+    NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+    int num = temp % numberOfItems;
+    NSString *address = mainArray[num][2];
     
     detailViewController *detail;
 
@@ -381,9 +419,9 @@
     [cell.imageView addGestureRecognizer:click];
 
     cell.textLabel.text = [NSString stringWithFormat:@"#%d", num];
-//    cell.detailTextLabel.text = contentArray[num];
+    cell.detailTextLabel.text = array[2];
     
-//    cell.photoAddress = contentArray[num];
+    cell.photoAddress = array[2];
     cell.recordingAdress = [self obtainCellRecordingAddressWithIndex: index];
     cell.tag = index;
 
