@@ -20,6 +20,8 @@
 }
 
 @property (nonatomic, copy) NSString *photoAddress;
+@property (nonatomic, strong) NSData *big_photo_data;
+@property (nonatomic, strong) NSData *small_photo_data;
 
 @property (nonatomic, copy) NSString *audioAddress;
 

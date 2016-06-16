@@ -22,6 +22,7 @@
 		07C34D631CE9A89C00800A64 /* photoItem.m in Sources */ = {isa = PBXBuildFile; fileRef = 07C34D621CE9A89C00800A64 /* photoItem.m */; };
 		07E02E181CEAC5B300A7CA52 /* detailViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 07E02E171CEAC5B300A7CA52 /* detailViewController.m */; };
 		07E1DA701CFEC8E6008E28F9 /* imgPickerController.m in Sources */ = {isa = PBXBuildFile; fileRef = 07E1DA6F1CFEC8E6008E28F9 /* imgPickerController.m */; };
+		27FE09DF1D1285E70029F02B /* FolderArray.m in Sources */ = {isa = PBXBuildFile; fileRef = 27FE09DE1D1285E70029F02B /* FolderArray.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,6 +72,8 @@
 		07E1DA6F1CFEC8E6008E28F9 /* imgPickerController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = imgPickerController.m; sourceTree = "<group>"; };
 		07E1DA711CFEC8FB008E28F9 /* imgPickerController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = imgPickerController.h; sourceTree = "<group>"; };
 		19E4CDD6D201DA766BFE56A3 /* Pods-experiment.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-experiment.release.xcconfig"; path = "Pods/Target Support Files/Pods-experiment/Pods-experiment.release.xcconfig"; sourceTree = "<group>"; };
+		27FE09DD1D1285B40029F02B /* FolderArray.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FolderArray.h; sourceTree = "<group>"; };
+		27FE09DE1D1285E70029F02B /* FolderArray.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FolderArray.m; sourceTree = "<group>"; };
 		99866986DDB71E2ACAF0A69D /* libPods-experiment.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-experiment.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F349F66BDC5D39CFD1BB2E1B /* Pods-experiment.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-experiment.debug.xcconfig"; path = "Pods/Target Support Files/Pods-experiment/Pods-experiment.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -138,6 +141,8 @@
 				07E02E171CEAC5B300A7CA52 /* detailViewController.m */,
 				07C34D611CE9A88F00800A64 /* photoItem.h */,
 				07C34D621CE9A89C00800A64 /* photoItem.m */,
+				27FE09DD1D1285B40029F02B /* FolderArray.h */,
+				27FE09DE1D1285E70029F02B /* FolderArray.m */,
 				07E1DA711CFEC8FB008E28F9 /* imgPickerController.h */,
 				07E1DA6F1CFEC8E6008E28F9 /* imgPickerController.m */,
 				07C34D2D1CE99DEE00800A64 /* ViewController.h */,
@@ -384,6 +389,7 @@
 				07C34D631CE9A89C00800A64 /* photoItem.m in Sources */,
 				07C34D5C1CE9A00900800A64 /* rootViewController.m in Sources */,
 				07C34D291CE99DEE00800A64 /* main.m in Sources */,
+				27FE09DF1D1285E70029F02B /* FolderArray.m in Sources */,
 				07E02E181CEAC5B300A7CA52 /* detailViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
