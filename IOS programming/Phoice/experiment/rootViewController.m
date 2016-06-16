@@ -11,8 +11,9 @@
 #import "UIImageView+WebCache.h"
 #import "detailViewController.h"
 #import "FMDatabase.h"
+#import "MWPhotoBrowser.h"
 
-@interface rootViewController()<UIImagePickerControllerDelegate, UINavigationControllerDelegate>
+@interface rootViewController()<UIImagePickerControllerDelegate, UINavigationControllerDelegate, MWPhotoBrowserDelegate>
 
 @end
 
@@ -31,6 +32,9 @@
     UIImagePickerController *imgPickerController;
     UIBarButtonItem *pickImage;
     UIBarButtonItem *flexItem;
+    
+    //MWPhotoArray
+    NSMutableArray *mwPhotoArray;
     
     //database
     NSString *dbPath;
@@ -59,15 +63,30 @@
     
     [self obtainDataFromDB];
     
+    [self loadIntoMWPhotoArray];
+    
     [self initializeView];
     
     [self initializeTableView];
     
-    [self initiaizeScrollView];
-    
-    [self initializePageControl];
+//    [self initiaizeScrollView];
+//    
+//    [self initializePageControl];
 
 }
+
+-(void)loadIntoMWPhotoArray{
+    mwPhotoArray = [[NSMutableArray alloc]init];
+    
+    NSMutableArray *mainArray = [[NSMutableArray alloc]initWithContentsOfFile:Plist_filePath];
+    [mainArray enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        if([obj[1] isKindOfClass:[NSData class]]){
+            UIImage *img = [[UIImage alloc]initWithData:obj[1]];
+            [mwPhotoArray addObject:[MWPhoto photoWithImage:img]];
+        }
+    }];
+}
+
 
 -(void)initializeDataBase{
     //intialize the database
@@ -251,7 +270,7 @@
         
         [repeatSelection addAction:cancel];
         
-        [picker presentViewController:repeatSelection animated:YES completion:nil];
+        [picker presentViewController:repeatSelection animated:YES completion:nil]; 
     }
 
     
@@ -278,6 +297,9 @@
 
         
         if(!contain){
+            //put into the mwPhotoArray
+            UIImage *img = [[UIImage alloc]initWithData:big_data];
+            [mwPhotoArray addObject:[MWPhoto photoWithImage:img]];
             //save onto plist
             [mainArray addObject:array];
             BOOL success = [mainArray writeToFile:Plist_filePath atomically:YES];
@@ -321,7 +343,7 @@
 -(void) initializeTableView{
     
     self.automaticallyAdjustsScrollViewInsets = NO;
-    self.tblView = [[UITableView alloc] initWithFrame:CGRectMake(0, self.navigationController.navigationBar.frame.origin.y + self.navigationController.navigationBar.frame.size.height, self.view.frame.size.width, self.view.frame.size.height - self.navigationController.navigationBar.frame.size.height *2 ) style:UITableViewStylePlain];
+    self.tblView = [[UITableView alloc] initWithFrame:CGRectMake(0, self.navigationController.navigationBar.frame.origin.y + self.navigationController.navigationBar.frame.size.height, self.view.frame.size.width, self.view.frame.size.height - self.navigationController.navigationBar.frame.size.height *2 - self.navigationController.navigationBar.frame.origin.y) style:UITableViewStylePlain];
     
     self.tblView.backgroundColor = [UIColor grayColor];
     
@@ -428,6 +450,39 @@
     return cell;
 }
 
+-(void)continuousView: (UITapGestureRecognizer*)tap{
+    //go to MW Photo Array
+    MWPhotoBrowser *browser = [[MWPhotoBrowser alloc]initWithDelegate:self];
+    
+    browser.displayActionButton = YES; // Show action button to allow sharing, copying, etc (defaults to YES)
+    browser.displayNavArrows = NO; // Whether to display left and right nav arrows on toolbar (defaults to NO)
+    browser.displaySelectionButtons = NO; // Whether selection buttons are shown on each image (defaults to NO)
+    browser.zoomPhotosToFill = YES; // Images that almost fill the screen will be initially zoomed to fill (defaults to YES)
+    browser.alwaysShowControls = NO; // Allows to control whether the bars and controls are always visible or whether they fade away to show the photo full (defaults to NO)
+    browser.enableGrid = YES; // Whether to allow the viewing of all the photo thumbnails on a grid (defaults to YES)
+    browser.startOnGrid = NO; // Whether to start on the grid of thumbnails instead of the first photo (defaults to NO)
+    
+    int index = (int)tap.view.tag;
+    currentIndex = index;
+    [browser setCurrentPhotoIndex:currentIndex];
+    
+    [self.navigationController pushViewController:browser animated:YES];
+    
+    [browser showNextPhotoAnimated:YES];
+    [browser showPreviousPhotoAnimated:YES];
+}
+
+- (id<MWPhoto>)photoBrowser:(MWPhotoBrowser *)photoBrowser photoAtIndex:(NSUInteger)index {
+    if(index < mwPhotoArray.count){
+        return [mwPhotoArray objectAtIndex:index];
+    }
+    
+    return nil;
+}
+
+- (NSUInteger)numberOfPhotosInPhotoBrowser:(MWPhotoBrowser *)photoBrowser {
+    return mwPhotoArray.count;
+}
 
 -(NSString*) obtainCellRecordingAddressWithIndex: (int) index{
     NSString *string=[NSString stringWithFormat:@"num:%d.caf", index];
@@ -442,6 +497,7 @@
 }
 
 
+/*
 -(void)initializePageControl{
     CGFloat width = [UIScreen mainScreen].bounds.size.width;
     CGFloat height = [UIScreen mainScreen].bounds.size.height;
@@ -465,8 +521,9 @@
     scrView.frame = [UIScreen mainScreen].bounds;
     scrView.frame = CGRectMake(0, 0, width+20, [UIScreen mainScreen].bounds.size.height);
     scrView.backgroundColor = [UIColor blackColor];
-    //scrView.multipleTouchEnabled = YES;
-    //scrView.maximumZoomScale = 2.0;
+//    scrView.multipleTouchEnabled = YES;
+//    scrView.maximumZoomScale = 2.0;
+//    scrView.minimumZoomScale = 0.5;
     scrView.delegate = self;
     scrView.userInteractionEnabled = YES;
     scrView.pagingEnabled = YES;
@@ -555,18 +612,27 @@
     beforeView.contentMode = UIViewContentModeScaleAspectFit;
     UIImage *imageBefore = [self loadImageViewAtIndex:beforeIndex];
     beforeView.image = imageBefore;
+//    beforeView.userInteractionEnabled = YES;
+//    beforeView.multipleTouchEnabled = YES;
     [scrView addSubview: beforeView];
     
+    UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc]initWithTarget:self action:@selector(zoomImage:)];
+//    pinch.delegate = self;
     imageView = [[UIImageView alloc]initWithFrame:CGRectMake(width +20 , 0, width, height)];
     imageView.contentMode = UIViewContentModeScaleAspectFit;
     UIImage *imageNow = [self loadImageViewAtIndex:currentIndex];
     imageView.image = imageNow;
+    imageView.userInteractionEnabled = YES;
+    imageView.multipleTouchEnabled = YES;
+    [imageView addGestureRecognizer:pinch];
     [scrView addSubview:imageView];
     
     afterView = [[UIImageView alloc]initWithFrame:CGRectMake(width*2 + 40 ,0,width, height)];
     afterView.contentMode = UIViewContentModeScaleAspectFit;
     UIImage *imageAfter = [self loadImageViewAtIndex:afterIndex];
     afterView.image = imageAfter;
+//    afterView.userInteractionEnabled = YES;
+//    afterView.multipleTouchEnabled = YES;
     [scrView addSubview:afterView];
 }
 
@@ -582,10 +648,40 @@
         beforeView.image = nil;
         imageView.image = nil;
         afterView.image = nil;
-        currentIndex = 9999;
-        
-        //[tap.view removeFromSuperview];
+//        currentIndex = 9999;
     }];
+}
+
+-(void)zoomImage: (UIPinchGestureRecognizer*)recognizer{
+    CGFloat scale = recognizer.scale;
+    [self setScale: scale];
+    
+}
+
+-(void)setScale: (CGFloat)scale{
+    if (scale < 0.5  || scale > 2.0) return; // 最大缩放 2倍,最小0.5倍
+    
+    imageView.transform = CGAffineTransformMakeScale(scale, scale);
+    
+    if(scale > 1){
+        CGFloat contentW = imageView.frame.size.width;
+        CGFloat contentH = MAX(imageView.frame.size.height, [UIScreen mainScreen].bounds.size.height);
+        
+        imageView.center = CGPointMake(contentW * 0.5, contentH * 0.5);
+        scrView.contentSize = CGSizeMake(contentW, contentH);
+        
+        
+        CGPoint offset = scrView.contentOffset;
+        offset.x = (contentW - scrView.frame.size.width) * 0.5;
+        //        offset.y = (contentH - _zoomingImageView.frame.size.height) * 0.5;
+        scrView.contentOffset = offset;
+        
+    }
+    else {
+        scrView.contentSize = scrView.frame.size;
+        scrView.contentInset = UIEdgeInsetsMake(0, 0, 0, 0);
+        imageView.center = scrView.center;
+    }
 }
 
 -(UIImage*)loadImageViewAtIndex:(int)index{
@@ -595,6 +691,12 @@
     UIImage *img = [[UIImage alloc]initWithData:data];
     
     return img;
+}
+
+
+//need to account for two scenarios -- 1.the imageView is smaller than the frame of the screen; 2.the ImageView is larger than the frame of the screen
+-(void) scrollViewDidZoom:(UIScrollView *)scrollView{
+
 }
 
 -(void) scrollViewDidEndDecelerating:(UIScrollView *)scrollView{
@@ -628,6 +730,7 @@
     [scrView setContentOffset:CGPointMake(width+20, 0) animated:NO];
 
 }
+*/
 
 
 -(void)changeCellInfoWithText:(NSString *)string andDetailInfo:(NSString *)detail onIndexPath:(NSIndexPath *)indexpath{

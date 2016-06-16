@@ -3,6 +3,7 @@ platform :ios, '7.0'
 
 target 'experiment' do
 pod 'SDWebImage'
+pod 'MWPhotoBrowser'
 pod 'MZTimerLabel'
 pod 'FDWaveformView'
 pod 'SCSiriWaveformView'

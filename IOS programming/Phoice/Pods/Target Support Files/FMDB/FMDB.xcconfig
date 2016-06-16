@@ -1,6 +1,6 @@
 CONFIGURATION_BUILD_DIR = $PODS_CONFIGURATION_BUILD_DIR/FMDB
 GCC_PREPROCESSOR_DEFINITIONS = $(inherited) COCOAPODS=1
-HEADER_SEARCH_PATHS = "${PODS_ROOT}/Headers/Private" "${PODS_ROOT}/Headers/Private/FMDB" "${PODS_ROOT}/Headers/Public" "${PODS_ROOT}/Headers/Public/CTAssetsPickerController" "${PODS_ROOT}/Headers/Public/FDWaveformView" "${PODS_ROOT}/Headers/Public/FMDB" "${PODS_ROOT}/Headers/Public/MZTimerLabel" "${PODS_ROOT}/Headers/Public/SCSiriWaveformView" "${PODS_ROOT}/Headers/Public/SDWebImage" "${PODS_ROOT}/Headers/Public/SQLCipher" "${PODS_ROOT}/Headers/Public/TheAmazingAudioEngine" "${PODS_ROOT}/Headers/Public/sqlite3"
+HEADER_SEARCH_PATHS = "${PODS_ROOT}/Headers/Private" "${PODS_ROOT}/Headers/Private/FMDB" "${PODS_ROOT}/Headers/Public" "${PODS_ROOT}/Headers/Public/CTAssetsPickerController" "${PODS_ROOT}/Headers/Public/DACircularProgress" "${PODS_ROOT}/Headers/Public/FDWaveformView" "${PODS_ROOT}/Headers/Public/FMDB" "${PODS_ROOT}/Headers/Public/MBProgressHUD" "${PODS_ROOT}/Headers/Public/MWPhotoBrowser" "${PODS_ROOT}/Headers/Public/MZTimerLabel" "${PODS_ROOT}/Headers/Public/SCSiriWaveformView" "${PODS_ROOT}/Headers/Public/SDWebImage" "${PODS_ROOT}/Headers/Public/SQLCipher" "${PODS_ROOT}/Headers/Public/TheAmazingAudioEngine" "${PODS_ROOT}/Headers/Public/sqlite3"
 LIBRARY_SEARCH_PATHS = $(inherited) "$PODS_CONFIGURATION_BUILD_DIR/SQLCipher" "$PODS_CONFIGURATION_BUILD_DIR/sqlite3"
 OTHER_CFLAGS = $(inherited) -DSQLITE_HAS_CODEC -DHAVE_USLEEP=1 $(inherited) -DFMDB_SQLITE_STANDALONE
 OTHER_LDFLAGS = -l"sqlite3"

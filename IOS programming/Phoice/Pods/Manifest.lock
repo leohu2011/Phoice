@@ -1,5 +1,6 @@
 PODS:
   - CTAssetsPickerController (2.9.5)
+  - DACircularProgress (2.3.1)
   - FDWaveformView (0.3.1)
   - FMDB/FTS (2.6.2):
     - FMDB/standard
@@ -13,6 +14,11 @@ PODS:
   - FMDB/standalone/FTS (2.6.2):
     - sqlite3/fts
   - FMDB/standard (2.6.2)
+  - MBProgressHUD (0.9.2)
+  - MWPhotoBrowser (2.1.2):
+    - DACircularProgress (~> 2.3)
+    - MBProgressHUD (~> 0.9)
+    - SDWebImage (!= 3.7.2, ~> 3.7)
   - MZTimerLabel (0.5.4)
   - SCSiriWaveformView (1.0.3)
   - SDWebImage (3.8.1):
@@ -37,6 +43,7 @@ DEPENDENCIES:
   - FMDB/SQLCipher
   - FMDB/standalone
   - FMDB/standalone/FTS
+  - MWPhotoBrowser
   - MZTimerLabel
   - SCSiriWaveformView
   - SDWebImage
@@ -44,8 +51,11 @@ DEPENDENCIES:
 
 SPEC CHECKSUMS:
   CTAssetsPickerController: b413fece2194ae3dbf22fbc544cf6f2a6d516a4d
+  DACircularProgress: 4dd437c0fc3da5161cb289e07ac449493d41db71
   FDWaveformView: 9d641a95bc0abd8af27cac4c973b015735d916f0
   FMDB: 854a0341b4726e53276f2a8996f06f1b80f9259a
+  MBProgressHUD: 1569cf7ace17a8bac47aabfbb8580a49690386d1
+  MWPhotoBrowser: 5836d7aa041dc05a13de380c246826578adc5ea5
   MZTimerLabel: cd9bfb9304540ef2a9e163384fca9c978f0dbf83
   SCSiriWaveformView: b8b2756af42addcd31900c3945f24edafefb5395
   SDWebImage: 35f9627a3e44b4f292a8a8ce6a531fa488239b91
@@ -53,6 +63,6 @@ SPEC CHECKSUMS:
   sqlite3: c8b1b937fe823ab46411e471cdc1aa92d1b106ce
   TheAmazingAudioEngine: 0ed8c05486646373a48b22a341d31de42d1af2c3
 
-PODFILE CHECKSUM: 2c73b87a0975bff237f4756bd35e8a3a0d8b28de
+PODFILE CHECKSUM: abaeb464f176e74020c95098e36f1fcfdb8cb8cc
 
 COCOAPODS: 1.0.1

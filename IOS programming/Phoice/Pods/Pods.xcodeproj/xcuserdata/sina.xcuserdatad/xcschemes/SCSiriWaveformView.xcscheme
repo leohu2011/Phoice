@@ -14,7 +14,7 @@
             buildForArchiving = "YES">
             <BuildableReference
                BuildableIdentifier = 'primary'
-               BlueprintIdentifier = '62C0CA95A422BE57005FED31F16720A4'
+               BlueprintIdentifier = 'FB7370FB9354A71B50133EFC71688CF2'
                BlueprintName = 'SCSiriWaveformView'
                ReferencedContainer = 'container:Pods.xcodeproj'
                BuildableName = 'libSCSiriWaveformView.a'>
